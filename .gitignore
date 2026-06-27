@@ -1,0 +1,11 @@
+node_modules/
+.next/
+dist/
+out/
+coverage/
+.env
+.env.*
+!.env.example
+apps/cms/storage/
+apps/player/release/
+*.log
