@@ -42,7 +42,7 @@ export function isAllowedLocalOrigin(origin: string | undefined): boolean {
   }
 }
 
-export function configuredSocketOrigins(): string[] | boolean {
+export function configuredSocketOrigins(): string[] | true {
   const configured = process.env.SOCKET_CORS_ORIGIN?.split(",").map((origin) => origin.trim()).filter(Boolean);
 
   if (configured?.length) {
