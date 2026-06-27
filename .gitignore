@@ -9,3 +9,4 @@ coverage/
 apps/cms/storage/
 apps/player/release/
 *.log
+*.tsbuildinfo

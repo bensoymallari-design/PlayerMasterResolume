@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import type { ZoneRect } from "@playermaster/shared";
 import { prisma } from "@/lib/prisma";
 
@@ -39,7 +40,7 @@ export class LayoutService {
             width: zone.rect.width,
             height: zone.rect.height,
             zIndex: zone.rect.zIndex,
-            config: zone.config ?? {}
+            config: (zone.config ?? {}) as Prisma.InputJsonValue
           }))
         }
       },

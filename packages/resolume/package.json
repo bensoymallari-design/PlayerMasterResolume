@@ -8,10 +8,8 @@
   "scripts": {
     "typecheck": "tsc --project tsconfig.json --noEmit"
   },
-  "dependencies": {
-    "osc": "^2.4.5"
-  },
   "devDependencies": {
+    "@types/node": "^26.0.1",
     "typescript": "^6.0.3"
   }
 }

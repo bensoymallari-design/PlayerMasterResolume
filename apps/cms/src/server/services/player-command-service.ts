@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import type { PlayerCommandKind } from "@playermaster/shared";
 import { getRealtimeServer } from "@/lib/realtime";
 import { prisma } from "@/lib/prisma";
@@ -14,7 +15,7 @@ export class PlayerCommandService {
         screenId: input.screenId,
         kind: input.kind,
         issuedById: input.issuedById,
-        payload: input.payload ?? {}
+        payload: (input.payload ?? {}) as Prisma.InputJsonValue
       }
     });
 

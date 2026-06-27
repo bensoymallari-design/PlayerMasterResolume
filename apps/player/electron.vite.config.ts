@@ -1,8 +1,15 @@
 import { defineConfig } from "electron-vite";
 import react from "@vitejs/plugin-react";
+import { resolve } from "node:path";
+
+const alias = {
+  "@": resolve(__dirname, "src"),
+  "@playermaster/shared": resolve(__dirname, "../../packages/shared/src/index.ts")
+};
 
 export default defineConfig({
   main: {
+    resolve: { alias },
     build: {
       rollupOptions: {
         input: "src/main/main.ts"
@@ -10,6 +17,7 @@ export default defineConfig({
     }
   },
   preload: {
+    resolve: { alias },
     build: {
       rollupOptions: {
         input: "src/preload/preload.ts"
@@ -17,6 +25,7 @@ export default defineConfig({
     }
   },
   renderer: {
+    resolve: { alias },
     plugins: [react()],
     build: {
       rollupOptions: {

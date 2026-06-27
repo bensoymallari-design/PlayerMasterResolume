@@ -1,4 +1,4 @@
-import osc from "osc";
+import dgram from "node:dgram";
 
 export interface ResolumeConfig {
   ip: string;
@@ -13,39 +13,17 @@ export interface OscArgument {
 }
 
 export class ResolumeService {
-  private readonly port: osc.UDPPort;
-  private isOpen = false;
+  private readonly socket: dgram.Socket;
 
   constructor(private readonly config: ResolumeConfig) {
-    this.port = new osc.UDPPort({
-      localAddress: config.localAddress ?? "0.0.0.0",
-      localPort: config.localPort ?? 0,
-      remoteAddress: config.ip,
-      remotePort: config.port
-    });
-  }
-
-  async connect(): Promise<void> {
-    if (this.isOpen) {
-      return;
+    this.socket = dgram.createSocket("udp4");
+    if (config.localPort || config.localAddress) {
+      this.socket.bind(config.localPort ?? 0, config.localAddress ?? "0.0.0.0");
     }
-
-    await new Promise<void>((resolve) => {
-      this.port.once("ready", () => {
-        this.isOpen = true;
-        resolve();
-      });
-      this.port.open();
-    });
   }
 
   close(): void {
-    if (!this.isOpen) {
-      return;
-    }
-
-    this.port.close();
-    this.isOpen = false;
+    this.socket.close();
   }
 
   async triggerClip(layer: number, clip: number): Promise<void> {
@@ -82,7 +60,53 @@ export class ResolumeService {
   }
 
   private async send(address: string, args: OscArgument[]): Promise<void> {
-    await this.connect();
-    this.port.send({ address, args });
+    const message = encodeOscMessage(address, args);
+    await new Promise<void>((resolve, reject) => {
+      this.socket.send(message, this.config.port, this.config.ip, (error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+        resolve();
+      });
+    });
   }
+}
+
+function encodeOscMessage(address: string, args: OscArgument[]): Buffer {
+  const typeTag = `,${args.map((arg) => arg.type).join("")}`;
+  return Buffer.concat([
+    oscString(address),
+    oscString(typeTag),
+    ...args.map((arg) => encodeArg(arg))
+  ]);
+}
+
+function oscString(value: string): Buffer {
+  const raw = Buffer.from(`${value}\0`, "utf8");
+  return Buffer.concat([raw, Buffer.alloc(padding(raw.length))]);
+}
+
+function encodeArg(arg: OscArgument): Buffer {
+  if (arg.type === "i") {
+    const buffer = Buffer.alloc(4);
+    buffer.writeInt32BE(Number(arg.value ?? 0));
+    return buffer;
+  }
+
+  if (arg.type === "f") {
+    const buffer = Buffer.alloc(4);
+    buffer.writeFloatBE(Number(arg.value ?? 0));
+    return buffer;
+  }
+
+  if (arg.type === "s") {
+    return oscString(String(arg.value ?? ""));
+  }
+
+  return Buffer.alloc(0);
+}
+
+function padding(length: number): number {
+  return (4 - (length % 4)) % 4;
 }

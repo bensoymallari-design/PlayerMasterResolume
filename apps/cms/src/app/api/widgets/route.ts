@@ -1,3 +1,4 @@
+import type { Prisma } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { created, fail, ok } from "@/lib/api";
 import { requireSession } from "@/lib/auth";
@@ -25,7 +26,7 @@ export async function POST(request: NextRequest) {
         data: {
           name: body.name,
           kind: body.kind,
-          config: body.config ?? {}
+          config: (body.config ?? {}) as Prisma.InputJsonValue
         }
       })
     );
