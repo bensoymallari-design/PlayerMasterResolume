@@ -1,0 +1,17 @@
+{
+  "name": "@playermaster/resolume",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --project tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "osc": "^2.4.5"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
+  }
+}

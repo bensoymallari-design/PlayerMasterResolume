@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  MANAGER
+  OPERATOR
+  VIEWER
+}
+
+enum MediaKind {
+  VIDEO
+  IMAGE
+  GIF
+  HTML_WIDGET
+  WEBSITE
+  YOUTUBE
+  LIVE_STREAM
+  NDI
+}
+
+enum ScreenStatus {
+  ONLINE
+  OFFLINE
+  DEGRADED
+}
+
+enum ScheduleKind {
+  DAILY
+  WEEKLY
+  DATE_RANGE
+  EMERGENCY
+}
+
+enum ZoneKind {
+  VIDEO
+  IMAGE
+  CLOCK
+  WEATHER
+  NEWS_TICKER
+  HTML_WIDGET
+  WEBSITE
+  TEXT
+}
+
+enum WidgetKind {
+  CLOCK
+  WEATHER
+  NEWS
+  TEXT
+}
+
+enum PlayerCommandKind {
+  RESTART_PLAYER
+  REFRESH_CONTENT
+  REBOOT_DEVICE
+  CLEAR_CACHE
+  SCREENSHOT_DEVICE
+  CHANGE_PLAYLIST
+}
+
+enum PlayerCommandStatus {
+  PENDING
+  SENT
+  ACKNOWLEDGED
+  FAILED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole @default(OPERATOR)
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  media          Media[]
+  playerCommands PlayerCommand[]
+
+  @@index([role])
+}
+
+model Screen {
+  id                String       @id @default(cuid())
+  name              String
+  registrationCode  String       @unique
+  deviceFingerprint String?
+  status            ScreenStatus @default(OFFLINE)
+  lastHeartbeatAt   DateTime?
+  currentContent    String?
+  currentPlaylistId String?
+  currentLayoutId   String?
+  screenshotUrl     String?
+  cpuUsagePercent   Float?
+  ramUsagePercent   Float?
+  diskUsagePercent  Float?
+  appVersion        String?
+  osVersion         String?
+  monitorCount      Int          @default(1)
+  metadata          Json         @default("{}")
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  playlist   Playlist? @relation(fields: [currentPlaylistId], references: [id], onDelete: SetNull)
+  layout     Layout?   @relation(fields: [currentLayoutId], references: [id], onDelete: SetNull)
+  schedules  ScheduleScreen[]
+  logs       PlayerLog[]
+  commands   PlayerCommand[]
+
+  @@index([status])
+  @@index([lastHeartbeatAt])
+}
+
+model Media {
+  id              String    @id @default(cuid())
+  title           String
+  kind            MediaKind
+  mimeType        String
+  fileName        String?
+  storagePath     String?
+  externalUrl     String?
+  durationSeconds Int?
+  checksum        String?
+  sizeBytes       BigInt?
+  category        String?
+  tags            String[]  @default([])
+  thumbnailUrl    String?
+  metadata        Json      @default("{}")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  createdById     String?
+
+  createdBy     User?          @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  playlistItems PlaylistItem[]
+
+  @@index([kind])
+  @@index([category])
+  @@index([tags], type: Gin)
+}
+
+model Playlist {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  durationSeconds Int      @default(0)
+  isPublished     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  items     PlaylistItem[]
+  schedules Schedule[]
+  screens   Screen[]
+
+  @@index([isPublished])
+}
+
+model PlaylistItem {
+  id              String   @id @default(cuid())
+  order           Int
+  durationSeconds Int
+  transition      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  playlistId      String
+  mediaId         String
+
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  media    Media    @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+
+  @@unique([playlistId, order])
+  @@index([mediaId])
+}
+
+model Schedule {
+  id          String       @id @default(cuid())
+  name        String
+  kind        ScheduleKind
+  priority    Int          @default(0)
+  isEmergency Boolean      @default(false)
+  timezone    String       @default("UTC")
+  startsAt    DateTime?
+  endsAt      DateTime?
+  daysOfWeek  Int[]        @default([])
+  startTime   String?
+  endTime     String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  playlistId  String
+
+  playlist Playlist         @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  screens  ScheduleScreen[]
+
+  @@index([kind, priority])
+  @@index([startsAt, endsAt])
+}
+
+model ScheduleScreen {
+  scheduleId String
+  screenId   String
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  screen   Screen   @relation(fields: [screenId], references: [id], onDelete: Cascade)
+
+  @@id([scheduleId, screenId])
+}
+
+model Layout {
+  id               String   @id @default(cuid())
+  name             String
+  description      String?
+  resolutionWidth  Int      @default(1920)
+  resolutionHeight Int      @default(1080)
+  isTemplate       Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  zones   Zone[]
+  screens Screen[]
+
+  @@index([isTemplate])
+}
+
+model Zone {
+  id        String   @id @default(cuid())
+  name      String
+  kind      ZoneKind
+  x         Float
+  y         Float
+  width     Float
+  height    Float
+  zIndex    Int      @default(0)
+  config    Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  layoutId  String
+
+  layout Layout @relation(fields: [layoutId], references: [id], onDelete: Cascade)
+
+  @@index([layoutId, zIndex])
+}
+
+model Widget {
+  id        String     @id @default(cuid())
+  name      String
+  kind      WidgetKind
+  config    Json       @default("{}")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model PlayerLog {
+  id        String   @id @default(cuid())
+  level     String
+  message   String
+  context   Json     @default("{}")
+  createdAt DateTime @default(now())
+  screenId  String
+
+  screen Screen @relation(fields: [screenId], references: [id], onDelete: Cascade)
+
+  @@index([screenId, createdAt])
+  @@index([level])
+}
+
+model PlayerCommand {
+  id             String              @id @default(cuid())
+  kind           PlayerCommandKind
+  status         PlayerCommandStatus @default(PENDING)
+  payload        Json                @default("{}")
+  issuedAt       DateTime            @default(now())
+  acknowledgedAt DateTime?
+  error          String?
+  screenId       String
+  issuedById     String
+
+  screen   Screen @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  issuedBy User   @relation(fields: [issuedById], references: [id], onDelete: Restrict)
+
+  @@index([screenId, status])
+}
