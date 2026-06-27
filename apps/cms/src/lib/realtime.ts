@@ -1,5 +1,6 @@
 import { Server } from "socket.io";
 import type { PlayerCommand, PlayerHeartbeat } from "@playermaster/shared";
+import { configuredSocketOrigins, isAllowedLocalOrigin, localNetworkOnlyEnabled } from "@/lib/local-network";
 import { prisma } from "@/lib/prisma";
 
 export interface RealtimeServer {
@@ -17,7 +18,20 @@ export function getRealtimeServer(): RealtimeServer {
 
   const io = new Server({
     cors: {
-      origin: process.env.SOCKET_CORS_ORIGIN?.split(",") ?? ["http://localhost:3000"],
+      origin(origin, callback) {
+        if (localNetworkOnlyEnabled() && !isAllowedLocalOrigin(origin)) {
+          callback(new Error("PlayerMaster is configured for local network access only"));
+          return;
+        }
+
+        const configured = configuredSocketOrigins();
+        if (configured === true || !origin || configured.includes(origin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(new Error("Socket origin is not allowed"));
+      },
       credentials: true
     }
   });
