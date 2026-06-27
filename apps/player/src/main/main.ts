@@ -1,3 +1,4 @@
+import { config as loadEnv } from "dotenv";
 import { app, BrowserWindow, ipcMain, powerSaveBlocker, screen } from "electron";
 import { autoUpdater } from "electron-updater";
 import { io } from "socket.io-client";
@@ -6,6 +7,8 @@ import { ContentSyncService } from "@/main/services/content-sync-service";
 import { PlayerCommandService } from "@/main/services/player-command-service";
 import { SettingsService } from "@/main/services/settings-service";
 import { TelemetryService } from "@/main/services/telemetry-service";
+
+loadEnv({ path: ".env.local" });
 
 let mainWindow: BrowserWindow | undefined;
 

@@ -8,13 +8,19 @@
     "packages/*"
   ],
   "scripts": {
+    "db:local:up": "docker compose -f docker-compose.local.yml up -d",
+    "db:local:down": "docker compose -f docker-compose.local.yml down",
+    "local:ip": "node scripts/print-lan-url.mjs",
     "dev": "npm run dev --workspace @playermaster/cms",
+    "dev:lan": "npm run dev:lan --workspace @playermaster/cms",
     "dev:player": "npm run dev --workspace @playermaster/player",
+    "dev:player:local": "npm run dev:local --workspace @playermaster/player",
     "build": "npm run build --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "prisma:generate": "npm run prisma:generate --workspace @playermaster/cms",
-    "prisma:migrate": "npm run prisma:migrate --workspace @playermaster/cms"
+    "prisma:migrate": "npm run prisma:migrate --workspace @playermaster/cms",
+    "prisma:seed": "npm run prisma:seed --workspace @playermaster/cms"
   },
   "engines": {
     "node": ">=20.11.0",
